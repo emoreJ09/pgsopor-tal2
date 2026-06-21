@@ -1,7 +1,7 @@
 import streamlit as st
 import db  
 
-# --- 1. I-IMPORT ANG MGA KULANG NA FILES ---
+# --- 1. I-IMPORT ANG MGA WEB CONVERTED FILES ---
 import dashboard     
 import add_pow       
 import list_pow      
@@ -9,7 +9,10 @@ import preview_pow
 
 # I-initialize ang database sa unang load ng website
 if 'db_ready' not in st.session_state:
-    db.initialize_db()
+    try:
+        db.initialize_db()
+    except Exception as e:
+        pass
     st.session_state.db_ready = True
 
 # State management para sa paglipat-lipat ng screen at user sessions
@@ -19,11 +22,11 @@ if 'username' not in st.session_state:
     st.session_state.username = None
 if 'user_role' not in st.session_state:
     st.session_state.user_role = None
-# Nagdagdag ng sub-menu state para sa dashboard features
 if 'current_tab' not in st.session_state:
     st.session_state.current_tab = '📌 Main Dashboard'
 
-# --- MGA PALANDINGAN O PAHINGA NG WEB APP (SCREENS) ---
+
+# --- 2. MGA PALANDINGAN O PAHINGA NG WEB APP (SCREENS) ---
 
 def show_login():
     st.markdown("<h2 style='text-align: center; color: #2196F3;'>ACCOUNT LOGIN</h2>", unsafe_allow_html=True)
@@ -76,9 +79,9 @@ def show_signup():
         st.rerun()
 
 
-# --- DITO NAKAKONEKTA ANG MGA PILING FEATURES MO ---
+# --- 3. DITO NAKAKONEKTA ANG MGA PILING FEATURES MO ---
 def show_dashboard():
-    # 1. Sidebar para sa Navigation at Logout kapag naka-log in na
+    # Sidebar para sa Navigation at Logout kapag naka-log in na
     st.sidebar.title("📁 PGSO MENU")
     st.sidebar.write(f"👤 User: **{st.session_state.username}**")
     st.sidebar.write(f"⚙️ Role: `{st.session_state.user_role.upper()}`")
@@ -103,12 +106,11 @@ def show_dashboard():
         st.session_state.current_tab = '📌 Main Dashboard'
         st.rerun()
 
-    # 2. Main Screen Controller batay sa pinili sa Sidebar
+    # Main Screen Controller batay sa pinili sa Sidebar
     if selection == "📌 Main Dashboard":
         st.markdown(f"<h1 style='color: #333;'>🏢 PGSO Dashboard</h1>", unsafe_allow_html=True)
         st.subheader(f"Welcome, {st.session_state.username}!")
         
-        # Tinatawag ang main() function ng dashboard.py mo
         try:
             dashboard.main()
         except AttributeError:
@@ -118,32 +120,28 @@ def show_dashboard():
                 st.error("❌ Hindi matakbo ang dashboard.py. Siguraduhing may 'def main():' ito sa loob.")
 
     elif selection == "➕ Add POW":
-        st.title("➕ Add Project Of Work (POW)")
         try:
             add_pow.main() 
         except AttributeError:
             st.error("❌ May error sa pag-load ng add_pow.py. Siguraduhing may 'def main():' ito sa loob.")
 
     elif selection == "📋 List POW":
-        st.title("📋 Listahan ng POW")
         try:
             list_pow.main() 
         except AttributeError:
             st.error("❌ May error sa pag-load ng list_pow.py. Siguraduhing may 'def main():' ito sa loob.")
             
     elif selection == "🔍 Preview POW":
-        st.title("🔍 Preview POW")
         try:
             preview_pow.main() 
         except AttributeError:
             st.error("❌ May error sa pag-load ng preview_pow.py. Siguraduhing may 'def main():' ito sa loob.")
 
 
-# --- APP CONTROLLER ---
-with st.container():
-    if st.session_state.page == 'login':
-        show_login()
-    elif st.session_state.page == 'signup':
-        show_signup()
-    elif st.session_state.page == 'dashboard':
-        show_dashboard()
+# --- 4. APP CONTROLLER BLOCK ---
+if st.session_state.page == 'login':
+    show_login()
+elif st.session_state.page == 'signup':
+    show_signup()
+elif st.session_state.page == 'dashboard':
+    show_dashboard()
