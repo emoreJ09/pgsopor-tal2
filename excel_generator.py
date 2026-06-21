@@ -72,4 +72,55 @@ def generate_excel_bytes(project_name, location, pow_items):
         
         name = str(raw_name).replace("\n", " ").replace("\r", " ").strip()
         try:
-            price = float(raw_price) if raw_price is not None else
+            # 🎯 Heto ang inayos na bahagi na naputol kanina:
+            price = float(raw_price) if raw_price is not None else 0.0
+        except ValueError:
+            price = 0.0
+
+        amount = qty * price
+        computed_total += amount
+
+        ws.cell(row=row_tracker, column=1, value=idx).alignment = align_center
+        ws.cell(row=row_tracker, column=2, value=qty).alignment = align_center
+        ws.cell(row=row_tracker, column=3, value=unit).alignment = align_center
+        ws.cell(row=row_tracker, column=4, value=name).alignment = align_left
+        
+        p_cell = ws.cell(row=row_tracker, column=5, value=price)
+        p_cell.number_format = '#,##0.00'
+        p_cell.alignment = align_right
+        
+        a_cell = ws.cell(row=row_tracker, column=6, value=amount)
+        a_cell.number_format = '#,##0.00'
+        a_cell.alignment = align_right
+
+        for column_pos in range(1, 7):
+            ws.cell(row=row_tracker, column=column_pos).font = font_regular
+            
+        row_tracker += 1
+
+    row_tracker += 1 
+    ws.cell(row=row_tracker, column=5, value="Total  P").font = font_bold_body
+    ws.cell(row=row_tracker, column=5).alignment = Alignment(horizontal="right", vertical="center")
+    
+    f_total_cell = ws.cell(row=row_tracker, column=6, value=computed_total)
+    f_total_cell.font = font_bold_body
+    f_total_cell.number_format = '"P" #,##0.00'
+    f_total_cell.alignment = align_right
+
+    double_bottom_border = Border(bottom=Side(style='double'))
+    last_item_amount_cell = ws.cell(row=row_tracker - 2, column=6)
+    last_item_amount_cell.border = double_bottom_border
+
+    row_tracker += 2
+    ws.cell(row=row_tracker, column=1, value="Prepared by:                                                                                Checked by:").font = font_regular
+    
+    row_tracker += 2
+    ws.cell(row=row_tracker, column=1, value="        JONATHAN G. LADIGNON                                                                BENJAMIN N. RAMOS JR.").font = font_bold_body
+    
+    row_tracker += 1
+    ws.cell(row=row_tracker, column=1, value="             Admin. Officer III                                                                 Engineer II").font = font_regular
+
+    row_tracker += 2
+    ws.cell(row=row_tracker, column=1, value="Noted by:                                                                                      Recommending Approval:").font = font_regular
+
+    row_tracker += 2
