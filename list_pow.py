@@ -17,7 +17,7 @@ def main():
         st.info("💡 Walang mahanap na sineb na Program of Work (POW) history sa database.")
         return
 
-    # --- PROCESS DATA INTO MONTH BRACKETS (Kumbaga sa Treeview Parent/Child Nodes) ---
+    # --- PROCESS DATA INTO MONTH BRACKETS ---
     grouped_data = {}
 
     for row in records:
@@ -53,16 +53,21 @@ def main():
             "Date": date_str
         })
 
-    # --- RENDER THE WEB LAYOUT (MONTH BY MONTH EXPANDERS) ---
+    # --- RENDER THE WEB LAYOUT ---
     for month_bracket, items in grouped_data.items():
-        # Gumamit ng st.expander na parang Treeview toggle node na pwedeng i-collapse
         with st.expander(f"📅 {month_bracket} ({len(items)} Records Locked)", expanded=True):
             
-            # Ipakita ang mga data rows sa loob ng expander gamit ang interactive Streamlit Dataframe
+            # Inayos ang pagsasara ng brackets at parenthesis dito:
             st.dataframe(
                 items,
                 use_container_width=True,
-                hide_index=False,
                 column_config={
                     "POW ID": st.column_config.TextColumn("POW ID", width="small"),
-                    "Project Name": st.column_config
+                    "Project Name": st.column_config.TextColumn("Project Title & Details", width="large"),
+                    "Location": st.column_config.TextColumn("Location", width="medium"),
+                    "Grand Total Amount": st.column_config.TextColumn("Grand Total", width="medium")
+                }
+            )
+
+    st.markdown("---")
+    st.caption("PGSO Document Tracking System • Streamlit Edition")
