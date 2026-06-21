@@ -72,7 +72,6 @@ def generate_excel_bytes(project_name, location, pow_items):
         
         name = str(raw_name).replace("\n", " ").replace("\r", " ").strip()
         try:
-            # 🎯 Heto ang inayos na bahagi na naputol kanina:
             price = float(raw_price) if raw_price is not None else 0.0
         except ValueError:
             price = 0.0
@@ -124,3 +123,101 @@ def generate_excel_bytes(project_name, location, pow_items):
     ws.cell(row=row_tracker, column=1, value="Noted by:                                                                                      Recommending Approval:").font = font_regular
 
     row_tracker += 2
+    ws.cell(row=row_tracker, column=1, value="        MARIO T. MARIANO                                                                     ENGR. FLORECIO M. VALINO").font = font_bold_body
+    
+    row_tracker += 1
+    ws.cell(row=row_tracker, column=1, value="             Engineer IV                                                                          PGS-Officer").font = font_regular
+
+    row_tracker += 2
+    ws.cell(row=row_tracker, column=4, value="                                     Approved:").font = font_regular
+
+    row_tracker += 2
+    ws.cell(row=row_tracker, column=4, value="                     HON. AURELIO M. UMALI").font = font_bold_body
+    row_tracker += 1
+    ws.cell(row=row_tracker, column=4, value="                                           Governor").font = font_regular
+
+    column_widths = {'A': 4.57, 'B': 4.86, 'C': 7.00, 'D': 47.14, 'E': 11.57, 'F': 14.57}
+    for col_letter, width_size in column_widths.items():
+        ws.column_dimensions[col_letter].width = width_size
+
+    ws.row_dimensions[9].height = 20
+    for r_idx in range(10, row_tracker + 15):
+        ws.row_dimensions[r_idx].height = 16
+
+    if len(pow_items) > 35:
+        from openpyxl.worksheet.pagebreak import Break
+        ws.row_breaks.append(Break(id=45))
+
+    excel_stream = BytesIO()
+    wb.save(excel_stream)
+    excel_stream.seek(0)
+    return excel_stream.getvalue()
+
+
+def show_excel_preview_streamlit(pow_id):
+    """
+    Ito ang main function para sa Streamlit UI.
+    Ipinapakita nito ang text preview at nagbibigay ng Download Button.
+    """
+    proj_info = db.get_project_details(pow_id)
+    pow_items = db.get_items_by_project(pow_id)
+
+    if not proj_info:
+        st.error("❌ Hindi mahanap ang detalye ng proyektong ito sa database.")
+        return
+
+    project_name, location = proj_info[0], proj_info[1]
+
+    # --- RENDER TEXT PREVIEW SA WEB ---
+    st.subheader("📄 Print Layout Preview")
+    
+    preview_output = f"""
+                         Republic of the Philippines
+                       PROVINCE   OF   NUEVA   ECIJA
+                                Palayan City
+                     PROVINCIAL GENERAL SERVICES OFFICE
+                     
+                              PROGRAM OF WORKS
+                              
+    Project:  {project_name}
+    Location: {location}
+    {"=" * 80}
+    {"ITEM":<6}{"QTY":<8}{"UNIT":<8}{"DESCRIPTION":<35}{"UNIT PRICE":<12}{"AMOUNT":<11}
+    {"=" * 80}"""
+    
+    grand_total = 0.0
+    for idx, item in enumerate(pow_items, start=1):
+        qty = float(item[0])
+        unit = item[1]
+        name = str(item[2]).replace("\n", " ").strip()
+        price = float(item[3]) if item[3] is not None else 0.0
+        amount = qty * price
+        grand_total += amount
+        
+        short_name = name[:32] + "..." if len(name) > 32 else name
+        preview_output += f"\n{idx:<6}{qty:<8.2f}{unit:<8}{short_name:<35}{price:>12,.2f}{amount:>11,.2f}"
+
+    preview_output += f"\n{'-' * 80}\n{'TOTAL':<57}P {grand_total:>20,.2f}\n{'=' * 80}\n"
+    preview_output += f"\nPrepared by: Jonathan G. Ladignon    Checked by: Benjamin N. Ramos Jr"
+    
+    st.code(preview_output, language="text")
+
+    # --- UTILITY EXCEL DOWNLOAD TRIGGER ---
+    st.markdown("---")
+    st.subheader("📥 Actions")
+    
+    try:
+        excel_data = generate_excel_bytes(project_name, location, pow_items)
+        clean_project_name = project_name.replace(' ', '_').replace('/', '-').replace('\\', '-')
+        filename = f"POW_{clean_project_name}.xlsx"
+
+        st.download_button(
+            label="📥 DOWNLOAD OFFICIAL EXCEL FILE",
+            data=excel_data,
+            file_name=filename,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+            use_container_width=True
+        )
+    except Exception as e:
+        st.error(f"May error sa pagbuo ng Excel download link: {e}")
