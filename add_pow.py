@@ -39,8 +39,8 @@ def main():
         else:
             st.warning(f"🔍 Ang '{search_query}' ay wala pa sa iyong database. Kapag idinagdag, awtomatiko itong marerehistro bilang bagong aytem.")
 
-    # --- BUTTON: ADD TO LIST FUNCTION ---
-    if st.button("➕ Add to List", type="secondary", use_container_width=True):
+  # --- BUTTON: ADD TO LIST FUNCTION ---
+    if st.button("➕ Add to List", type="secondary", width="stretch"):
         if len(st.session_state.temporary_items) >= 150:
             st.error("⚠️ Limit Reached: Hanggang 150 items lamang ang pwedeng ilagay sa isang POW.")
         elif not selected_name:
@@ -102,13 +102,15 @@ def main():
                 "Total Price": f"₱ {total_price:,.2f}"
             })
             
-        st.dataframe(table_data, use_container_width=True, hide_index=True)
+        # Inayos ang width ng dataframe dito
+        st.dataframe(table_data, width="stretch", hide_index=True)
         st.markdown(f"<h3 style='text-align: right; color: #2b6cb0;'>GRAND TOTAL: ₱ {grand_total:,.2f}</h3>", unsafe_allow_html=True)
         
         col_del, col_space = st.columns([2, 5])
         with col_del:
             item_to_remove = st.number_input("Ipasok ang # ng aytem na nais alisin:", min_value=1, max_value=len(st.session_state.temporary_items), step=1)
-            if st.button("🗑️ Remove Item", type="primary", use_container_width=True):
+            # Inayos ang width ng remove item button
+            if st.button("🗑️ Remove Item", type="primary", width="stretch"):
                 del st.session_state.temporary_items[int(item_to_remove) - 1]
                 st.toast("Item removed successfully!")
                 st.rerun()
@@ -120,7 +122,8 @@ def main():
         proj_name = st.text_input("Project Name:", key="final_proj_name").strip().title()
         proj_loc = st.text_input("Location:", key="final_proj_loc").strip().title()
         
-        if st.button("💾 CONFIRM & SAVE WHOLE POW TO MYSQL", type="primary", use_container_width=True):
+        # Inayos ang width ng main database save button
+        if st.button("💾 CONFIRM & SAVE WHOLE POW TO MYSQL", type="primary", width="stretch"):
             if not proj_name or not proj_loc:
                 st.warning("⚠️ Kulang: Pakisulat ang Project Name at Location bago i-save.")
             else:
@@ -134,4 +137,3 @@ def main():
                     st.error("❌ Database Error: Nagka-error sa pag-save sa MySQL Server.")
     else:
         st.info("💡 Kasalukuyang walang laman ang listahan. Mag-add ng mga aytem sa itaas upang mag-preview.")
-        
