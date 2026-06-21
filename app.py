@@ -34,7 +34,8 @@ def show_login():
     username = st.text_input("Username", key="login_user").strip()
     password = st.text_input("Password", type="password", key="login_pass").strip()
     
-    if st.button("Login", use_container_width=True, type="primary"):
+    # Inayos ang button width mula use_container_width=True patungong width="stretch"
+    if st.button("Login", width="stretch", type="primary"):
         if not username or not password:
             st.warning("⚠️ Attention! All input fields must be filled out before proceeding")
         else:
@@ -50,7 +51,8 @@ def show_login():
                 st.error("❌ Login Failed! Invalid username or password. Please try again.")
                 
     st.markdown("---")
-    if st.button("Don't have an account? Sign Up", use_container_width=True):
+    # Inayos din ang width dito para pantay at stretch pa rin sa mobile/desktop screens
+    if st.button("Don't have an account? Sign Up", width="stretch"):
         st.session_state.page = 'signup'
         st.rerun()
 
