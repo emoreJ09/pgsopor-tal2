@@ -122,4 +122,114 @@ def trigger_edit_modal_dialog(pow_id, current_name, current_location, associated
     
     st.markdown("### 🏢 Details of POW")
     new_name = st.text_input("Project Title / Name:", value=current_name)
-    new_loc = st.text_input("Project Location:",
+    new_loc = st.text_input("Project Location:", value=current_location)
+
+    st.markdown("### 📊 List of Items (Inline Spreadsheet Data Editor)")
+    st.caption("💡 Pwede mong palitan direkta ang values sa table sa ibaba, magdagdag sa pinakahuling linya, o pindutin ang `Delete` button.")
+
+    # Ihanda ang dataset para sa dynamic interactive editor dataframe grid
+    edit_rows = []
+    for item in associated_items:
+        edit_rows.append({
+            "QTY": float(item[0]),
+            "UNIT": str(item[1]),
+            "ITEM DESCRIPTION": str(item[2]),
+            "UNIT PRICE": float(item[3]),
+            "ORIGINAL NAME": str(item[2])  # Nakatagong identifier node para sa Excel tracking link
+        })
+    
+    df_editable = pd.DataFrame(edit_rows)
+
+    # NATIVE STREAMLIT DATA EDITOR SYSTEM (Lunas sa mahabang manual row configuration forms!)
+    edited_df = st.data_editor(
+        df_editable,
+        num_rows="dynamic", # Pinapayagan ang ➕ Add Line at pagbura natively sa browser grid
+        use_container_width=True,
+        column_config={
+            "ORIGINAL NAME": st.column_config.TextColumn(help="Hidden system identity map tracker.", disabled=True)
+        }
+    )
+
+    st.write("---")
+    
+    # --- SAVE ACTION EXECUTION CORE ENGINE ---
+    if st.button("💾 SAVE ALL CHANGES & OVERWRITE DATABASE", type="primary", use_container_width=True):
+        new_name_clean = new_name.strip().title()
+        new_loc_clean = new_loc.strip().title()
+
+        if not new_name_clean or not new_loc_clean:
+            st.error("❌ Huwag iwanang blangko ang Name at Location, boss.")
+            return
+
+        excel_path = r"G:\jrm\master_items.xlsx"
+        
+        # --- EXCEL SPREADSHEET MASTER FILE SYSTEM CHECK & LOGIC ---
+        if not os.path.exists(excel_path):
+            st.error(f"❌ File Error: Hindi mahanap ang Excel file sa: {excel_path}. Siguraduhing naka-mount ang G: drive network module node.")
+            return
+
+        try:
+            wb = load_workbook(excel_path)
+            ws = wb.active
+            
+            # Repopulate final matrix array stack maps
+            final_items_to_save = []
+            
+            for index, row in edited_df.iterrows():
+                try:
+                    q = float(row["QTY"])
+                    u = str(row["UNIT"]).upper()
+                    d = str(row["ITEM DESCRIPTION"]).strip()
+                    p = float(row["UNIT PRICE"])
+                    
+                    # Hawakan ang safe execution para sa mga bagong idinagdag na row blocks
+                    orig_d = str(row["ORIGINAL NAME"]).strip() if pd.notna(row["ORIGINAL NAME"]) else d.strip()
+                    
+                    final_items_to_save.append((q, u, d, p))
+
+                    # Mag-loop sa Excel para hanapin at palitan ang tumutugmang master item
+                    target_row = None
+                    for ex_row in range(2, ws.max_row + 1):
+                        cell_val = ws.cell(row=ex_row, column=1).value
+                        if cell_val and str(cell_val).strip().lower() == orig_d.lower():
+                            target_row = ex_row
+                            break
+
+                    if target_row:
+                        ws.cell(row=target_row, column=1, value=d)
+                        ws.cell(row=target_row, column=2, value=u)
+                        ws.cell(row=target_row, column=3, value=p)
+                    else:
+                        new_row = ws.max_row + 1
+                        ws.cell(row=new_row, column=1, value=d)
+                        ws.cell(row=new_row, column=2, value=u)
+                        ws.cell(row=new_row, column=3, value=p)
+                        
+                except Exception as row_err:
+                    st.error(f"Format Conversion Value Error on line item index: {index} | {row_err}")
+                    wb.close()
+                    return
+
+            # I-save ang Workbook structural updates
+            wb.save(excel_path)
+            wb.close()
+            
+        except Exception as e:
+            st.error(f"❌ Excel Open/Save Pipeline Failure Mode: {e}")
+            return
+
+        # --- SUBPROCESS PYTHON EXECUTION AGENT TRIGGER ---
+        try:
+            subprocess.run(["py", "import_master.py"], cwd=r"G:\jrm", check=True, capture_output=True, text=True)
+        except Exception as err:
+            st.warning(f"⚠️ Na-save sa Excel pero nabigong patakbuhin ang 'import_master.py' monitoring script core.\n\nDetalye: {err}")
+
+        # --- REVISED SQL SERVER METADATA SYNC CONTROLLER ---
+        success_main = db.update_project_main_details(pow_id, new_name_clean, new_loc_clean)
+        success_items = db.update_project_items_batch(pow_id, final_items_to_save)
+
+        if success_main and success_items:
+            st.success("🎉 Swabe ang ikot, boss! Na-save sa Excel, SQL Master at Cloud Server Core! Nagre-refresh...")
+            st.rerun()
+        else:
+            st.error("❌ SQL Synchronization Exception Error: May sumabog sa batch transaction data tables.")
