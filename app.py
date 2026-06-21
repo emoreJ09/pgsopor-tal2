@@ -1,18 +1,27 @@
 import streamlit as st
-import db  # Gagamitin ang kinopya mong db.py sa parehong folder
+import db  
 
-# 1. I-initialize ang database sa unang load ng website
+# --- 1. I-IMPORT ANG MGA KULANG NA FILES ---
+import dashboard     
+import add_pow       
+import list_pow      
+import preview_pow   
+
+# I-initialize ang database sa unang load ng website
 if 'db_ready' not in st.session_state:
     db.initialize_db()
     st.session_state.db_ready = True
 
-# 2. State management para sa paglipat-lipat ng screen at user sessions
+# State management para sa paglipat-lipat ng screen at user sessions
 if 'page' not in st.session_state:
     st.session_state.page = 'login'
 if 'username' not in st.session_state:
     st.session_state.username = None
 if 'user_role' not in st.session_state:
     st.session_state.user_role = None
+# Nagdagdag ng sub-menu state para sa dashboard features
+if 'current_tab' not in st.session_state:
+    st.session_state.current_tab = '📌 Main Dashboard'
 
 # --- MGA PALANDINGAN O PAHINGA NG WEB APP (SCREENS) ---
 
@@ -22,12 +31,10 @@ def show_login():
     username = st.text_input("Username", key="login_user").strip()
     password = st.text_input("Password", type="password", key="login_pass").strip()
     
-    # Login button layout
     if st.button("Login", use_container_width=True, type="primary"):
         if not username or not password:
             st.warning("⚠️ Attention! All input fields must be filled out before proceeding")
         else:
-            # Dito tinatawag ang authenticate function mo mula sa db.py
             user_role = db.authenticate_user(username, password)
             
             if user_role:
@@ -40,7 +47,6 @@ def show_login():
                 st.error("❌ Login Failed! Invalid username or password. Please try again.")
                 
     st.markdown("---")
-    # Link papuntang Sign Up
     if st.button("Don't have an account? Sign Up", use_container_width=True):
         st.session_state.page = 'signup'
         st.rerun()
@@ -56,7 +62,6 @@ def show_signup():
         if not username or not password:
             st.warning("⚠️ Attention! All fields are required to register an account.")
         else:
-            # Dito tinatawag ang register function mo mula sa db.py
             success, message = db.register_user(username, password, role='encoder')
             
             if success:
@@ -66,36 +71,62 @@ def show_signup():
                 st.error(f"❌ Registration Failed! {message}")
                 
     st.markdown("---")
-    # Link pabalik ng Login
     if st.button("Already have an account? Log In", use_container_width=True):
         st.session_state.page = 'login'
         st.rerun()
 
 
+# --- DITO NAKAKONEKTA ANG MGA PILING FEATURES MO ---
 def show_dashboard():
-    st.markdown(f"<h1 style='color: #333;'>🏢 PGSO Dashboard</h1>", unsafe_allow_html=True)
-    st.subheader(f"Welcome, {st.session_state.username}! ({st.session_state.user_role.upper()})")
+    # 1. Sidebar para sa Navigation at Logout kapag naka-log in na
+    st.sidebar.title("📁 PGSO MENU")
+    st.sidebar.write(f"👤 User: **{st.session_state.username}**")
+    st.sidebar.write(f"⚙️ Role: `{st.session_state.user_role.upper()}`")
+    st.sidebar.markdown("---")
     
-    # -------------------------------------------------------------
-    # 📝 PAALALA SA DASHBOARD:
-    # pansamantala muna nating inilagay ito habang wala pa ang dashboard.py mo.
-    st.info("Dito natin ilalagay ang mga input fields para sa data entry ng mga encoders mo mamaya.")
-    # -------------------------------------------------------------
-
-    st.markdown("---")
-    if st.button("Logout", type="secondary"):
+    # Mga Pagpipilian ng Encoder sa Sidebar
+    menu_options = [
+        "📌 Main Dashboard", 
+        "➕ Add POW", 
+        "📋 List POW", 
+        "🔍 Preview POW"
+    ]
+    
+    selection = st.sidebar.radio("Pumili ng Aksyon:", menu_options)
+    st.sidebar.markdown("---")
+    
+    # Logout Button sa pinakailalim ng Sidebar
+    if st.sidebar.button("🚪 Logout", type="primary", use_container_width=True):
         st.session_state.page = 'login'
         st.session_state.username = None
         st.session_state.user_role = None
+        st.session_state.current_tab = '📌 Main Dashboard'
         st.rerun()
 
+    # 2. Main Screen Controller batay sa pinili sa Sidebar
+    if selection == "📌 Main Dashboard":
+        st.markdown(f"<h1 style='color: #333;'>🏢 PGSO Dashboard</h1>", unsafe_allow_html=True)
+        st.subheader(f"Welcome, {st.session_state.username}!")
+        
+        # Tinatawag ang main() function ng dashboard.py mo
+        try:
+            dashboard.main()
+        except AttributeError:
+            try:
+                dashboard.show_dashboard() # Backup function name kung sakali
+            except:
+                st.error("❌ Hindi matakbo ang dashboard.py. Siguraduhing may 'def main():' ito sa loob.")
 
-# --- APP CONTROLLER (Katulad ng AppController class mo sa Tkinter) ---
-# Ginawa nating malinis na card-style box para maganda tingnan sa mobile screen
-with st.container():
-    if st.session_state.page == 'login':
-        show_login()
-    elif st.session_state.page == 'signup':
-        show_signup()
-    elif st.session_state.page == 'dashboard':
-        show_dashboard()
+    elif selection == "➕ Add POW":
+        st.title("➕ Add Project Of Work (POW)")
+        try:
+            add_pow.main() # Tinatawag ang add_pow.py mo
+        except AttributeError:
+            st.error("❌ May error sa pag-load ng add_pow.py. Siguraduhing may 'def main():' ito sa loob.")
+
+    elif selection == "📋 List POW":
+        st.title("📋 Listahan ng POW")
+        try:
+            list_pow.main() # Tinatawag ang list_pow.py mo
+        except AttributeError:
+            st.error("❌ May error sa pag-load ng list_pow.py. Siguraduhing may 'def main():
