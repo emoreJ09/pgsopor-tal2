@@ -113,20 +113,37 @@ def show_dashboard():
             dashboard.main()
         except AttributeError:
             try:
-                dashboard.show_dashboard() # Backup function name kung sakali
+                dashboard.show_dashboard() 
             except:
                 st.error("❌ Hindi matakbo ang dashboard.py. Siguraduhing may 'def main():' ito sa loob.")
 
     elif selection == "➕ Add POW":
         st.title("➕ Add Project Of Work (POW)")
         try:
-            add_pow.main() # Tinatawag ang add_pow.py mo
+            add_pow.main() 
         except AttributeError:
             st.error("❌ May error sa pag-load ng add_pow.py. Siguraduhing may 'def main():' ito sa loob.")
 
     elif selection == "📋 List POW":
         st.title("📋 Listahan ng POW")
         try:
-            list_pow.main() # Tinatawag ang list_pow.py mo
+            list_pow.main() 
         except AttributeError:
-            st.error("❌ May error sa pag-load ng list_pow.py. Siguraduhing may 'def main():
+            st.error("❌ May error sa pag-load ng list_pow.py. Siguraduhing may 'def main():' ito sa loob.")
+            
+    elif selection == "🔍 Preview POW":
+        st.title("🔍 Preview POW")
+        try:
+            preview_pow.main() 
+        except AttributeError:
+            st.error("❌ May error sa pag-load ng preview_pow.py. Siguraduhing may 'def main():' ito sa loob.")
+
+
+# --- APP CONTROLLER ---
+with st.container():
+    if st.session_state.page == 'login':
+        show_login()
+    elif st.session_state.page == 'signup':
+        show_signup()
+    elif st.session_state.page == 'dashboard':
+        show_dashboard()
