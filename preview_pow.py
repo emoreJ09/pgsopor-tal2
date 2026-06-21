@@ -351,4 +351,13 @@ class PreviewPowModule(tk.Frame):
             success_items = db.update_project_items_batch(self.current_selected_pow_id, final_items_to_save)
 
             if success_main and success_items:
-                messagebox.showinfo("Tagumpay", "Swabe ang ik
+                messagebox.showinfo("Tagumpay", "Swabe ang ikot, boss!\n\n1. Napalitan ang lumang Record sa Excel\n2. Na-update ang Master List sa SQL\n3. Refresh Complete!")
+                edit_win.destroy() 
+                self.load_projects_from_db() 
+                for r in self.items_tree.get_children(): self.items_tree.delete(r)
+                self.lbl_location.config(text="Location: (Pumili muna ng proyekto)", font=("Segoe UI", 11, "italic"), fg="#4a5568")
+            else:
+                messagebox.showerror("SQL Error", "May error sa pag-update ng POW tables sa database.")
+
+        btn_final_save = tk.Button(bottom_frame, text="💾 SAVE ALL CHANGES & OVERWRITE DATABASE", font=("Segoe UI", 11, "bold"), bg="#e53e3e", fg="white", padx=20, pady=8, command=save_all_updates_to_db)
+        btn_final_save.pack(anchor="center")
