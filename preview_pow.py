@@ -1,4 +1,5 @@
 import subprocess
+import os
 from openpyxl import load_workbook
 import excel_generator  # Idinagdag sa pinaka-itaas ng UI file mo
 import tkinter as tk
@@ -252,7 +253,10 @@ class PreviewPowModule(tk.Frame):
             if not sel:
                 messagebox.showwarning("Puna", "Pumili muna ng linya sa table, boss.")
                 return
-            edit_tree.item(sel[0], values=(ent_qty.get(), ent_unit.get(), ent_desc.get(), ent_price.get(), self.current_editing_orig_desc))
+            if not ent_qty.get() or not ent_price.get():
+                messagebox.showwarning("Puna", "Hindi pwedeng blangko ang QTY at PRICE.")
+                return
+            edit_tree.item(sel[0], values=(ent_qty.get(), ent_unit.get().upper(), ent_desc.get().title(), ent_price.get(), self.current_editing_orig_desc))
             clear_entry_fields()
 
         def add_new_row():
@@ -261,7 +265,7 @@ class PreviewPowModule(tk.Frame):
                 return
             qty_val = ent_qty.get() if ent_qty.get() else "0"
             price_val = ent_price.get() if ent_price.get() else "0.00"
-            edit_tree.insert("", "end", values=(qty_val, ent_unit.get(), ent_desc.get(), price_val, ent_desc.get()))
+            edit_tree.insert("", "end", values=(qty_val, ent_unit.get().upper(), ent_desc.get().title(), price_val, ent_desc.get().title()))
             clear_entry_fields()
 
         def clear_entry_fields():
@@ -280,8 +284,8 @@ class PreviewPowModule(tk.Frame):
         bottom_frame.pack(fill="x", side="bottom", pady=15)
 
         def save_all_updates_to_db():
-            new_name = ent_proj_name.get().strip()
-            new_loc = ent_location.get().strip()
+            new_name = ent_proj_name.get().strip().title()
+            new_loc = ent_location.get().strip().title()
             
             if not new_name or not new_loc:
                 messagebox.showerror("Error", "Huwag iwanang blangko ang Name at Location, boss.")
@@ -292,6 +296,10 @@ class PreviewPowModule(tk.Frame):
 
             confirm = messagebox.askyesno("Kumpirmasyon", "Gusto mo bang ituloy ang pag-save gamit ang Excel-Database Sync pipeline?")
             if not confirm: return
+
+            if not os.path.exists(excel_path):
+                messagebox.showerror("File Error", f"Hindi mahanap ang Excel file sa path na: {excel_path}\nSiguraduhing naka-mount ang G: drive.")
+                return
 
             try:
                 wb = load_workbook(excel_path)
