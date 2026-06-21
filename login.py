@@ -1,92 +1,86 @@
-import tkinter as tk
-from tkinter import messagebox
-import db  # I-import ang db.py
+import streamlit as st
+import db  # Naka-link sa iyong inayos na db.py module
 
-class LoginScreen:
-    def __init__(self, parent, on_login_success, on_go_to_signup):
-        self.parent = parent
-        self.on_login_success = on_login_success
-        self.on_go_to_signup = on_go_to_signup
+def render_login_screen():
+    """Renders the standalone Account Login portal view."""
+    st.markdown("## 🔐 ACCOUNT LOGIN")
+    st.caption("Workspace Access Authentication Engine")
+    
+    # Paggamit ng Streamlit form para maiwasan ang un-submitted execution reruns
+    with st.form(key="login_form_handler"):
+        username = st.text_input("Username:", placeholder="Ipasok ang username...", autocomplete="username")
+        password = st.text_input("Password:", type="password", placeholder="Ipasok ang password...", autocomplete="current-password")
         
-        self.parent.title("Login - System")
+        # Form submission button act as the main trigger handler
+        login_submitted = st.form_submit_button("Login to System", type="primary", use_container_width=True)
         
-        self.frame = tk.Frame(self.parent, padx=30, pady=30)
-        self.frame.pack(expand=True)
+        if login_submitted:
+            username_clean = username.strip()
+            password_clean = password.strip()
+            
+            # Validation Check Validation Logic
+            if not username_clean or not password_clean:
+                st.warning("⚠️ Attention! All input fields must be filled out before proceeding.")
+            else:
+                # Pagtawag sa authenticate_user query process mula sa database core
+                user_role = db.authenticate_user(username_clean, password_clean)
+                
+                if user_role == "pending":
+                    st.warning("⏳ Access Deferred: Your registration request is still pending for admin authorization approval.")
+                elif user_role:
+                    # I-commit ang tracking metadata configurations sa memory state layer
+                    st.session_state.logged_in = True
+                    st.session_state.username = username_clean
+                    st.session_state.user_role = user_role
+                    st.session_state.page = "dashboard"
+                    
+                    st.success(f"🎉 Success! Your credentials have been verified. Logged in as {user_role.upper()}.")
+                    st.rerun()
+                else:
+                    st.error("❌ Login Failed! Invalid username or password. Please try again.")
 
-        tk.Label(self.frame, text="ACCOUNT LOGIN", font=("Arial", 16, "bold"), fg="#333").grid(row=0, column=0, columnspan=2, pady=(0, 20))
+    # Link routing section para lumipat sa Register view
+    st.write("")
+    if st.button("Don't have an account? Sign Up", type="secondary", use_container_width=True):
+        st.session_state.page = "signup"
+        st.rerun()
 
-        tk.Label(self.frame, text="Username:", font=("Arial", 11)).grid(row=1, column=0, pady=5, sticky="e")
-        self.username_entry = tk.Entry(self.frame, font=("Arial", 11), width=20)
-        self.username_entry.grid(row=1, column=1, pady=5, padx=5)
-        self.username_entry.focus()
 
-        tk.Label(self.frame, text="Password:", font=("Arial", 11)).grid(row=2, column=0, pady=5, sticky="e")
-        self.password_entry = tk.Entry(self.frame, show="*", font=("Arial", 11), width=20)
-        self.password_entry.grid(row=2, column=1, pady=5, padx=5)
-
-        self.login_btn = tk.Button(self.frame, text="Login", command=self.handle_login, font=("Arial", 11, "bold"), bg="#2196F3", fg="white", cursor="hand2")
-        self.login_btn.grid(row=3, column=0, columnspan=2, pady=(20, 5), sticky="we")
+def render_register_screen():
+    """Renders the account creation portal module screen view."""
+    st.markdown("## 📝 CREATE ACCOUNT")
+    st.caption("New Encoder Account Registration Gateway Node")
+    
+    with st.form(key="registration_form_handler"):
+        new_username = st.text_input("New Username:", placeholder="Pumili ng natatanging username...")
+        new_password = st.text_input("New Password:", type="password", placeholder="Gumawa ng ligtas na password...")
+        confirm_password = st.text_input("Confirm New Password:", type="password", placeholder="Ulitin ang password...")
         
-        # Link papuntang Sign Up
-        self.signup_lnk = tk.Button(self.frame, text="Don't have an account? Sign Up", command=self.on_go_to_signup, font=("Arial", 9, "underline"), fg="#2196F3", bd=0, bg=self.parent.cget("bg"), cursor="hand2")
-        self.signup_lnk.grid(row=4, column=0, columnspan=2, pady=5)
-
-    def handle_login(self):
-        username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
-
-        if not username or not password:
-            messagebox.showwarning("Attention!", "All input fields must be filled out before proceeding")
-            return
-
-        user_role = db.authenticate_user(username, password)
-
-        if user_role:
-            messagebox.showinfo("Success!", f"Your credentials have been successfully verified.\nLogged in as {user_role.upper()}.")
-            self.on_login_success(username, user_role)
-        else:
-            messagebox.showerror("Login Failed!", "Invalid username or password. Please try again.")
-
-
-class RegisterScreen:
-    def __init__(self, parent, on_go_to_login):
-        self.parent = parent
-        self.on_go_to_login = on_go_to_login
+        register_submitted = st.form_submit_button("Register Account", type="primary", use_container_width=True)
         
-        self.parent.title("Sign Up - Create Account")
-        
-        self.frame = tk.Frame(self.parent, padx=30, pady=30)
-        self.frame.pack(expand=True)
+        if register_submitted:
+            username_clean = new_username.strip()
+            password_clean = new_password.strip()
+            confirm_clean = confirm_password.strip()
+            
+            if not username_clean or not password_clean or not confirm_clean:
+                st.warning("⚠️ Attention! All fields are required to register an account.")
+            elif password_clean != confirm_clean:
+                st.error("❌ Registration Failed! Hindi nagtutugma ang ginawa mong password.")
+            else:
+                # Isulat ang registration records patungong cloud sa pamamagitan ng db core module
+                success, message = db.register_user(username_clean, password_clean, role='encoder')
+                
+                if success:
+                    st.success(f"✅ Success! {message}")
+                    # Awtomatikong ibalik sa login frame pagkatapos ng matagumpay na submission node process
+                    st.session_state.page = "login"
+                    st.rerun()
+                else:
+                    st.error(f"❌ Registration Failed! {message}")
 
-        tk.Label(self.frame, text="CREATE ACCOUNT", font=("Arial", 16, "bold"), fg="#4CAF50").grid(row=0, column=0, columnspan=2, pady=(0, 20))
-
-        tk.Label(self.frame, text="New Username:", font=("Arial", 11)).grid(row=1, column=0, pady=5, sticky="e")
-        self.username_entry = tk.Entry(self.frame, font=("Arial", 11), width=20)
-        self.username_entry.grid(row=1, column=1, pady=5, padx=5)
-        self.username_entry.focus()
-
-        tk.Label(self.frame, text="New Password:", font=("Arial", 11)).grid(row=2, column=0, pady=5, sticky="e")
-        self.password_entry = tk.Entry(self.frame, show="*", font=("Arial", 11), width=20)
-        self.password_entry.grid(row=2, column=1, pady=5, padx=5)
-
-        self.register_btn = tk.Button(self.frame, text="Register Account", command=self.handle_register, font=("Arial", 11, "bold"), bg="#4CAF50", fg="white", cursor="hand2")
-        self.register_btn.grid(row=3, column=0, columnspan=2, pady=(20, 5), sticky="we")
-
-        self.login_lnk = tk.Button(self.frame, text="Already have an account? Log In", command=self.on_go_to_login, font=("Arial", 9, "underline"), fg="#4CAF50", bd=0, bg=self.parent.cget("bg"), cursor="hand2")
-        self.login_lnk.grid(row=4, column=0, columnspan=2, pady=5)
-
-    def handle_register(self):
-        username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
-
-        if not username or not password:
-            messagebox.showwarning("Attention!", "All fields are required to register an account.")
-            return
-
-        success, message = db.register_user(username, password, role='encoder')
-        
-        if success:
-            messagebox.showinfo("Success!", message)
-            self.on_go_to_login()
-        else:
-            messagebox.showerror("Registration Failed!", message)
+    # Link routing section para bumalik sa login form
+    st.write("")
+    if st.button("Already have an account? Log In", type="secondary", use_container_width=True):
+        st.session_state.page = "login"
+        st.rerun()
