@@ -129,4 +129,22 @@ def main():
         
         # --- FINALIZE MODAL WORKFLOW (Katumbas ng open_project_details_modal) ---
         st.markdown("#### 💾 Save Project Details to Database")
-        proj_name = st.text_input("Project Name:",
+        proj_name = st.text_input("Project Name:", key="final_proj_name").strip().title()
+        proj_loc = st.text_input("Location:", key="final_proj_loc").strip().title()
+        
+        if st.button("💾 CONFIRM & SAVE WHOLE POW TO MYSQL", type="primary", use_container_width=True):
+            if not proj_name or not proj_loc:
+                st.warning("⚠️ Kulang: Pakisulat ang Project Name at Location bago i-save.")
+            else:
+                success = db.save_pow_to_sql(proj_name, proj_loc, st.session_state.temporary_items)
+                if success:
+                    st.balloons()
+                    st.success("🎉 Matagumpay na nai-save ang buong POW sa MySQL Database!")
+                    st.session_state.temporary_items = []  # Linisin ang listahan pagkatapos ma-save
+                    st.rerun()
+                else:
+                    st.error("❌ Database Error: Nagka-error sa pag-save sa MySQL Server.")
+    else:
+        st.info("💡 Kasalukuyang walang laman ang listahan. Mag-add ng mga aytem sa itaas upang mag-preview.")
+
+if __name__ == "__main__":
