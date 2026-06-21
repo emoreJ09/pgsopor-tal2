@@ -92,7 +92,7 @@ class OfficeDashboardStreamlit:
         elif st.session_state.current_page == "User Management" and self.user_role == "admin":
             self.render_user_management_view()
 
-    def show_welcome_message(self):
+def show_welcome_message(self):
         st.markdown("### Main Dashboard Workspace")
         with st.container(border=True):
             st.markdown("#### 📘 PGSO Portal System Info")
