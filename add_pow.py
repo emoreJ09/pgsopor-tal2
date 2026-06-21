@@ -44,10 +44,10 @@ def main():
             st.warning(f"🔍 Ang '{search_query}' ay wala pa sa iyong database. Kapag idinagdag, awtomatiko itong marerehistro bilang bagong aytem.")
 
     # --- BUTTON: ADD TO LIST FUNCTION ---
-    if st.button("➕ Add to List", type="secondary", use_container_width=True):
+        if st.button("➕ Add to List", type="secondary", use_container_width=True):
         if len(st.session_state.temporary_items) >= 150:
             st.error("⚠️ Limit Reached: Hanggang 150 items lamang ang pwedeng ilagay sa isang POW.")
-            elif not selected_name:
+        elif not selected_name:
             st.warning("⚠️ Input Error: Paki-lagay ang Item Name bago mag-add.")
         else:
             # I-format ang pangalan bilang Title Case tulab ng dati
