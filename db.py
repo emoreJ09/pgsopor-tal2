@@ -1,8 +1,9 @@
 import mysql.connector
 from mysql.connector import Error
+import streamlit as st
 
 # ==============================================================================
-# INAYOS: Live Cloud Database Configuration (Aiven MySQL Server)
+# Live Cloud Database Configuration (Aiven MySQL Server)
 # ==============================================================================
 SERVER_CONFIG = {
     'host': 'mysql-d7c52b2-pgsocap-a101.i.aivencloud.com',
@@ -14,7 +15,7 @@ SERVER_CONFIG = {
 DB_NAME = 'defaultdb'
 
 def get_connection(connect_to_db=True):
-    """Nagbabalik ng koneksyon sa MySQL Cloud Database."""
+    """Nagbabalik ng malinis at isolated na koneksyon sa MySQL Cloud Database."""
     try:
         config = SERVER_CONFIG.copy()
         if connect_to_db:
@@ -22,7 +23,7 @@ def get_connection(connect_to_db=True):
         conn = mysql.connector.connect(**config)
         return conn
     except Error as e:
-        print(f"Unable to establish database connection: {e}")
+        st.error(f"⚠️ Unable to establish database connection: {e}")
         return None
 
 def initialize_db():
@@ -34,14 +35,7 @@ def initialize_db():
     try:
         cursor = conn.cursor()
         
-        # ---- PANSAMANTALANG PANGLINIS (I-singit ito sa simula ng try block sa initialize_db) ----
-        # Buburahin nito ang lahat ng users bukod sa totoong admin para makapag-signup ka ulit fresh!
-        cursor.execute("DELETE FROM users WHERE username != 'admin'")
-        conn.commit()
-        print("🧹 Nalinis na ang mga multong accounts sa Cloud Database!")
-        # --------------------------------------------------------------------------------------
-        
-        # Table 1: Users Table (Kasama na ang 'status' column para sa Admin Approval)
+        # Table 1: Users Table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -57,18 +51,17 @@ def initialize_db():
             cursor.execute("ALTER TABLE users ADD COLUMN status VARCHAR(20) DEFAULT 'approved'")
             conn.commit()
         except Error:
-            pass # Ibig sabihin may status column na, skip na natin
+            pass 
         
-        # 🔑 INAYOS DITO: Siguraduhing may default admin at laging APPROVED ang status nito
+        # Siguraduhing may default admin at laging APPROVED ang status nito
         cursor.execute("SELECT * FROM users WHERE username = 'admin'")
         user_admin = cursor.fetchone()
         if user_admin is None:
             cursor.execute("INSERT INTO users (username, password, role, status) VALUES ('admin', 'password123', 'admin', 'approved')")
         else:
-            # KUNG MERON NANG ADMIN PERO NAKAPENDING SA DATABASE, IPILIT NATIN NA GAWING APPROVED!
             cursor.execute("UPDATE users SET status = 'approved', role = 'admin' WHERE username = 'admin'")
             
-        # Maglagay ng default encoder1 para sa testing mo
+        # Default encoder1 para sa paunang testing
         cursor.execute("SELECT * FROM users WHERE username = 'encoder1'")
         if cursor.fetchone() is None:
             cursor.execute("INSERT INTO users (username, password, role, status) VALUES ('encoder1', 'encoder123', 'encoder', 'approved')")
@@ -107,7 +100,7 @@ def initialize_db():
         ''')
         
         conn.commit()
-        print("Cloud Database tables at default accounts ay matagumpay na nailikha/na-update!")
+        print("Cloud Database initialization complete.")
             
     except Error as e:
         print(f"Database Initialization Error: {e}")
@@ -116,7 +109,7 @@ def initialize_db():
         if conn and conn.is_connected(): conn.close()
 
 def authenticate_user(username, password):
-    """Pinapapasok ang user kung TAMA ang credentials at 'approved' ang status (Maliban sa admin)."""
+    """Tinitingnan kung tama ang credentials ng user sa Cloud DB."""
     conn = get_connection(connect_to_db=True)
     if conn is None: return None
     try:
@@ -129,17 +122,14 @@ def authenticate_user(username, password):
             db_password, role, status = user[0], user[1], user[2]
             
             if password == db_password:
-                # Kung admin, laging pasok kahit anong status
                 if username == "admin" or role == "admin":
                     return role
                 
-                # Kung encoder, kailangang 'approved' muna ng admin
                 if status == "approved":
                     return role
                 else:
-                    print(f"Login Denied: {username} is still pending admin approval.")
                     return "pending" 
-                    
+                        
         return None
     except Error as e:
         print(f"Auth Error: {e}")
@@ -149,14 +139,14 @@ def authenticate_user(username, password):
         if conn and conn.is_connected(): conn.close()
 
 def register_user(username, password, role='encoder'):
-    """Nagrerehistro ng bagong user ngunit may 'pending' na status para aprubahan ng Admin."""
+    """Nagpapasok ng bagong account na may 'pending' status."""
     conn = get_connection(connect_to_db=True)
     if conn is None: return False, "Database connection error."
     try:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         if cursor.fetchone() is not None:
-            return False, "Username already exists!(GALING SA CLOUD DATABASE)"
+            return False, "Username already exists sa Cloud Database!"
             
         query = "INSERT INTO users (username, password, role, status) VALUES (%s, %s, %s, 'pending')"
         cursor.execute(query, (username, password, role))
@@ -169,7 +159,7 @@ def register_user(username, password, role='encoder'):
         if conn and conn.is_connected(): conn.close()
 
 def approve_user_by_id(user_id):
-    """Binabago ang status ng user mula 'pending' patungong 'approved'."""
+    """Ina-approve ang pending encoder account."""
     conn = get_connection(connect_to_db=True)
     if conn is None: return False
     try:
@@ -186,12 +176,11 @@ def approve_user_by_id(user_id):
         if conn and conn.is_connected(): conn.close()
 
 def get_all_encoders():
-    """Kinukuha ang lahat ng users bukod sa kahit anong admin accounts para sa Approval Panel."""
+    """Nagbabalik ng listahan ng lahat ng encoders para sa admin interface."""
     conn = get_connection(connect_to_db=True)
     if conn is None: return []
     try:
         cursor = conn.cursor()
-        # INAYOS: Sinala natin pareho ang username at role para sure na ENCODERS lang ang lalabas
         query = """
             SELECT id, username, role, status 
             FROM users 
@@ -208,25 +197,21 @@ def get_all_encoders():
         if conn and conn.is_connected(): conn.close()
 
 def delete_user_by_id(user_id, username):
-    """Inayos: Kumokonekta na rin sa Aiven Cloud Server para burahin ang user."""
+    """Nagbubura ng user account sa database system core."""
     conn = get_connection(connect_to_db=True)
     if conn is None: return False
     try:
         cursor = conn.cursor()
-
-        # 1. Burahin muna sa tbl_user kung may table ka na ganito sa cloud db mo
         try:
             query_logs = "DELETE FROM tbl_user WHERE user_id = %s OR username = %s" 
             cursor.execute(query_logs, (user_id, username))
         except Error:
-            pass # Kung walang ganitong table sa cloud mo, dedmahin lang
+            pass
 
-        # 2. Burahin sa users table sa cloud db
         query_user = "DELETE FROM users WHERE id = %s"
         cursor.execute(query_user, (user_id,))
 
         conn.commit()
-        print(f"Mga naburang rows sa cloud: {cursor.rowcount}") 
         return True
     except Error as err:
         print(f"Cloud Database Delete Error: {err}")
@@ -236,9 +221,10 @@ def delete_user_by_id(user_id, username):
         if conn and conn.is_connected(): conn.close()
 
 # ==============================================================================
-# MGA POW TRANSACTION AT UTILITY FUNCTIONS (HINDI GALAWIN)
+# POW TRANSACTION AT UTILITY FUNCTIONS
 # ==============================================================================
 def save_pow_to_sql(project_name, location, items_list):
+    """Inililigtas ang buong POW form parameters bundle."""
     conn = get_connection(connect_to_db=True)
     if conn is None: return False
     try:
@@ -246,9 +232,11 @@ def save_pow_to_sql(project_name, location, items_list):
         project_query = "INSERT INTO pow_projects (project_name, location) VALUES (%s, %s)"
         cursor.execute(project_query, (project_name, location))
         new_pow_id = cursor.lastrowid
+        
         items_query = "INSERT INTO pow_items (pow_id, qty, unit, item_name, unit_price) VALUES (%s, %s, %s, %s, %s)"
         for item in items_list:
             cursor.execute(items_query, (new_pow_id, item['qty'], item['unit'], item['name'], item['price']))
+            
         conn.commit()
         return True
     except Error as e:
@@ -273,7 +261,8 @@ def get_project_list():
         if 'cursor' in locals(): cursor.close()
         if conn and conn.is_connected(): conn.close()
 
-def add_new_master_item(user_role, name, unit, price):
+def add_new_master_item(name, unit, price, user_role="admin"):
+    """Inayos ang signatures upang diretsong matawag mula sa Streamlit block interface."""
     if user_role != "admin": return False
     conn = get_connection(connect_to_db=True)
     if conn is None: return False
